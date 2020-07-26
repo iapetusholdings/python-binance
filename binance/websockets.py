@@ -64,6 +64,7 @@ class BinanceClientFactory(WebSocketClientFactory, BinanceReconnectingClientFact
 class BinanceSocketManager(threading.Thread):
 
     STREAM_URL = 'wss://stream.binance.com:9443/'
+    FUTURES_STREAM_URL = 'wss://fstream.binance.com/'
 
     WEBSOCKET_DEPTH_5 = '5'
     WEBSOCKET_DEPTH_10 = '10'
@@ -71,7 +72,7 @@ class BinanceSocketManager(threading.Thread):
 
     DEFAULT_USER_TIMEOUT = 30 * 60  # 30 minutes
 
-    def __init__(self, client, user_timeout=DEFAULT_USER_TIMEOUT):
+    def __init__(self, client, user_timeout=DEFAULT_USER_TIMEOUT, futures = False):
         """Initialise the BinanceSocketManager
 
         :param client: Binance API client
@@ -81,18 +82,22 @@ class BinanceSocketManager(threading.Thread):
 
         """
         threading.Thread.__init__(self)
+        self.futures = futures
         self._conns = {}
         self._client = client
         self._user_timeout = user_timeout
-        self._timers = {'user': None, 'margin': None}
-        self._listen_keys = {'user': None, 'margin': None}
-        self._account_callbacks = {'user': None, 'margin': None}
+        self._timers = {'user': None, 'margin': None, 'futures': None}
+        self._listen_keys = {'user': None, 'margin': None, 'futures': None}
+        self._account_callbacks = {'user': None, 'margin': None, 'futures': None}
 
     def _start_socket(self, path, callback, prefix='ws/'):
         if path in self._conns:
             return False
 
-        factory_url = self.STREAM_URL + prefix + path
+        if self.futures:
+            factory_url = self.FUTURES_STREAM_URL + prefix + path
+        else:
+            factory_url = self.STREAM_URL + prefix + path
         factory = BinanceClientFactory(factory_url)
         factory.protocol = BinanceClientProtocol
         factory.callback = callback
@@ -495,6 +500,12 @@ class BinanceSocketManager(threading.Thread):
         # and start the socket with this specific key
         return self._start_account_socket('user', user_listen_key, callback)
 
+    def start_futures_socket(self, callback):
+        # Get the user listen key
+        user_listen_key = self._client.future_stream_get_listen_key()
+        # and start the socket with this specific key
+        return self._start_account_socket('futures', user_listen_key, callback)
+
     def start_margin_socket(self, callback):
         """Start a websocket for margin data
 
@@ -542,6 +553,9 @@ class BinanceSocketManager(threading.Thread):
         if socket_type == 'user':
             listen_key_func = self._client.stream_get_listen_key
             callback = self._account_callbacks[socket_type]
+        elif socket_type == 'futures':
+            listen_key_func = self._client.future_stream_get_listen_key
+            callback = self.account_callbacks[socket_type]
         else:
             listen_key_func = self._client.margin_stream_get_listen_key
             callback = self._account_callbacks[socket_type]
@@ -561,7 +575,10 @@ class BinanceSocketManager(threading.Thread):
             return
 
         # disable reconnecting if we are closing
-        self._conns[conn_key].factory = WebSocketClientFactory(self.STREAM_URL + 'tmp_path')
+        if self.futures:
+            self._conns[conn_key].factory = WebSocketClientFactory(self.FUTURES_STREAM_URL + 'tmp_path')
+        else:
+            self._conns[conn_key].factory = WebSocketClientFactory(self.STREAM_URL + 'tmp_path')
         self._conns[conn_key].disconnect()
         del(self._conns[conn_key])
 

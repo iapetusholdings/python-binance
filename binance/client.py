@@ -3107,6 +3107,29 @@ class Client(object):
         """
         return self._request_margin_api('get', 'margin/maxTransferable', signed=True, data=params)
 
+    def future_stream_get_listen_key(self):
+        """Start a new user data stream and return the listen key
+        If a stream already exists it should return the same key.
+        If the stream becomes invalid a new key is returned.
+
+        Can be used to keep the user stream alive.
+
+        https://binance-docs.github.io/apidocs/futures/en/#start-user-data-stream-user_stream
+
+        :returns: API response
+
+        .. code-block:: python
+
+            {
+                "listenKey": "pqia91ma19a5s61cv6a81va65sdf19v8a65a1a5s61cv6a81va65sdf19v8a65a1"
+            }
+
+        :raises: BinanceRequestException, BinanceAPIException
+
+        """
+        res = self._request_futures_api('post', 'listenKey', True, data={})
+        return res['listenKey']
+
     def margin_stream_get_listen_key(self):
         """Start a new margin data stream and return the listen key
         If a stream already exists it should return the same key.
@@ -3151,6 +3174,10 @@ class Client(object):
             'listenKey': listenKey
         }
         return self._request_margin_api('put', 'userDataStream', signed=True, data=params)
+
+    def futures_stream_get_listen_key(self):
+        res = self._request_futures_api('post', 'listenKey', True, data={})
+        return res['listenKey']
 
     def margin_stream_close(self, listenKey):
         """Close out a margin data stream.
@@ -3702,3 +3729,4 @@ class Client(object):
 
         """
         return self._request_futures_api('get', 'income', True, data=params)
+
