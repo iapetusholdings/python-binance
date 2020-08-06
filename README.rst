@@ -1,4 +1,13 @@
-This is a fork of python-binance from sammchardy with some added features.
+This is a fork of python-binance from sammchardy with added futures websockets and leveraged token websockets.
+
+To install this package:
+pip install git+https://github.com/iapetusholdings/python-binance.git
+
+If you don't have git:
+pip install https://github.com/iapetusholdings/python-binance/tarball/master
+
+If you already have python-binance installed use the --upgrade option,
+i.e. pip install --upgrade ...
 
 ================================
 Welcome to python-binance v0.7.5
