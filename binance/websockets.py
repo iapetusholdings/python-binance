@@ -12,6 +12,59 @@ from twisted.internet.error import ReactorAlreadyRunning
 
 from binance.client import Client
 
+import websocket
+import _thread as thread
+import time
+
+class simple_ws_with_callback:
+
+    def __init__(self, callback, endpoint):
+        self.callback = callback
+        self.ws = websocket.WebSocketApp(endpoint, on_message = self.on_msg, on_error = self.on_error)
+        self.ws.on_open = self.on_open
+        thread.start_new_thread(self.ws.run_forever, ())
+
+    def on_open(self):
+        def run():
+            while True:
+                time.sleep(3600)
+        thread.start_new_thread(run, ())
+
+    def on_msg(self, msg):
+        self.callback(json.loads(msg))
+
+    def on_error(self, error):
+        print(error)
+
+    def close(self):
+        self.ws.close()
+
+
+class BinanceInternalSocketManager:
+
+    def __init__(self):
+        self.open_websockets = {}
+
+    def start_token_nav_stream(self, symbol, callback):
+        if f'{symbol}@tokenNav' not in self.open_websockets:
+            ws = simple_ws_with_callback(callback, f'wss://fstream.binance.com/stream?streams={symbol}@tokenNav')
+            self.open_websockets[f'{symbol}@tokenNav'] = ws
+            return f'{symbol}@tokenNav'
+
+    def start_all_tokens_nav_stream(self, callback):
+        if 'nav@tokenNavArr' not in self.open_websockets:
+            ws = simple_ws_with_callback(callback, "wss://fstream.binance.com/stream?streams=nav@tokenNavArr")
+            self.open_websockets['nav@tokenNavArr'] = ws
+            return 'nav@tokenNavArr'
+
+    def close_websocket(self, key):
+        self.open_websockets[key].close()
+        del self.open_websockets[key]
+
+    def close(self):
+        for ws in tuple(self.open_websockets):
+            self.close_websocket(ws)
+
 
 class BinanceClientProtocol(WebSocketClientProtocol):
 
