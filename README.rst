@@ -1,3 +1,5 @@
+This is a fork of python-binance from sammchardy with some added features.
+
 ================================
 Welcome to python-binance v0.7.5
 ================================
