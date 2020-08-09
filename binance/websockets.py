@@ -13,6 +13,7 @@ from twisted.internet.error import ReactorAlreadyRunning
 from binance.client import Client
 
 import websocket
+from decimal import Decimal
 import _thread as thread
 import time
 
@@ -31,7 +32,7 @@ class simple_ws_with_callback:
         thread.start_new_thread(run, ())
 
     def on_msg(self, msg):
-        self.callback(json.loads(msg))
+        self.callback(json.loads(msg, parse_float = Decimal))
 
     def on_error(self, error):
         print(error)
