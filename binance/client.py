@@ -1689,6 +1689,9 @@ class Client(object):
 
         """
         return self._delete('order', True, data=params)
+    
+    def cancel_all_orders(self, **params):
+        return self._delete('openOrders', True, data=params)
 
     def get_open_orders(self, **params):
         """Get all open orders on a symbol.
